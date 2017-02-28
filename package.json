@@ -1,0 +1,26 @@
+{
+  "name": "shutyo",
+  "scripts": {
+    "install": "./node_modules/.bin/node-java-maven"
+  },
+  "dependencies": {
+    "buffer-concat": "^1.0.0",
+    "es6-map": "^0.1.4",
+    "java": "^0.8.0",
+    "node-java-maven": "0.0.12"
+  },
+  "java": {
+    "dependencies": [
+      {
+        "groupId": "net.sf.phat",
+        "artifactId": "sphinx4-core",
+        "version": "5prealpha"
+      },
+      {
+        "groupId": "net.sf.phat",
+        "artifactId": "sphinx4-data",
+        "version": "5prealpha"
+      }
+    ]
+  }
+}
