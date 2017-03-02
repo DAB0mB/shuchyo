@@ -1,6 +1,6 @@
+var Java = require("java");
+var Buffer = require("safe-buffer").Buffer;
 var Stream = require("stream");
-
-var MAX_CHUNK_SIZE = Buffer.poolSize * 8;
 
 function JavaReadStream(nativeReadStream) {
   Stream.Readable.call(this);
@@ -13,30 +13,20 @@ JavaReadStream.prototype = Object.create(Stream.Readable.prototype, {
     enumerable: true,
     configurable: true,
     writable: true,
-    value: function (size) {
+    value: function (maxSize) {
+      // word
+      maxSize *= 4;
+
       var self = this;
-      var chunk = "";
-      var promise;
+      var buffer = Array.apply(null, { length: maxSize }).map(Number.bind(null, 0));
+      var nativeBuffer = Java.newArray("byte", buffer);
 
-      var syncStreams = function (byte) {
-        if (!size-- || byte == -1) {
-          self._readStream.push(chunk || null);
-          return;
-        }
+      self._nativeReadStream.readPromise(nativeBuffer).then(function (size) {
+        if (size == -1) self.push(null);
 
-        var char = String.fromCharCode(byte);
-        chunk += char;
-
-        if (chunk.length == MAX_CHUNK_SIZE) {
-          self._readStream.push(chunk);
-          chunk = "";
-        }
-
-        promise = promise.then(syncStreams);
-        return self._nativeReadStream.readPromise();
-      };
-
-      promise = this._nativeReadStream.readPromise().then(syncStreams);
+        var chunk = Buffer.from(nativeBuffer).slice(0, size);
+        self.push(chunk);
+      });
     }
   }
 });
