@@ -5,6 +5,7 @@
     "install": "node helpers/maven_installer.js install"
   },
   "dependencies": {
+    "bluebird": "^3.4.7",
     "buffer-concat": "^1.0.0",
     "es6-map": "^0.1.4",
     "java": "^0.8.0",

@@ -1,9 +1,17 @@
 var Fs = require("fs");
 var Java = require("java");
+var JavaReadStream = require("./java_read_stream");
 
-function Microphone() {
-  this._nativeMicrophone = Java.newInstanceSync("edu.cmu.sphinx.api.Microphone");
-  this._readStream = Fs.createReadStream();
+function Microphone(config) {
+  this._nativeMicrophone = Java.newInstanceSync("edu.cmu.sphinx.api.Microphone",
+    config.sampleRate,
+    config.sampleSize,
+    config.signed,
+    config.bigEndian
+  );
+
+  var nativeReadStream = this._nativeMicrophone.getStream();
+  this._readStream = new JavaReadStream(nativeReadStream);
 }
 
 Microphone.prototype = Object.create(Object.prototype, {
@@ -12,7 +20,11 @@ Microphone.prototype = Object.create(Object.prototype, {
     configurable: true,
     writable: true,
     value: function () {
-      return this._nativeMicrophone.startRecordingPromise();
+      var self = this;
+
+      return this._nativeMicrophone.startRecordingPromise().then(function () {
+        self._readStream.read(Infinity);
+      });
     }
   },
 
@@ -29,31 +41,6 @@ Microphone.prototype = Object.create(Object.prototype, {
     enumerable: true,
     configurable: true,
     get: function () {
-      var self = this;
-      var chunkSize = Buffer.poolSize * 8;
-      var nativeReadStream = this._nativeMicrophone.getStreamSync();
-      var chunk = "";
-      var promise;
-
-      var syncStreams = function (byte) {
-        if (byte == -1) {
-          self._readStream.push(chunk || null);
-          return;
-        }
-
-        var char = String.fromCharCode(byte);
-        chunk += char;
-
-        if (chunk.length >= chunkSize) {
-          self._readStream.push(chunk);
-          chunk = "";
-        }
-
-        promise = promise.then(syncStreams);
-        return nativeReadStream.readPromise();
-      };
-
-      promise = nativeReadStream.readPromise().then(syncStreams);
       return this._readStream;
     }
   }

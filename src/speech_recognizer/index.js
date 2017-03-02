@@ -6,17 +6,17 @@ function SpeechRecognizer(config, javaClass) {
 
   var nativeConfig = Java.newInstanceSync("edu.cmu.sphinx.api.Configuration");
   if (config.acousticmodelpath)
-    nativeConfig.setAcousticmodelpathSync(config.acousticmodelpath);
+    nativeConfig.setAcousticmodelpath(config.acousticmodelpath);
   if (config.dictionarypath)
-    nativeConfig.setDictionarypathSync(config.dictionarypath);
+    nativeConfig.setDictionarypath(config.dictionarypath);
   if (config.grammarname)
-    nativeConfig.setGrammarnameSync(config.grammarname);
+    nativeConfig.setGrammarname(config.grammarname);
   if (config.grammarpath)
-    nativeConfig.setGrammarpathSync(config.grammarpath);
+    nativeConfig.setGrammarpath(config.grammarpath);
   if (config.languagemodelpath)
-    nativeConfig.setLanguagemodelpathSync(config.languagemodelpath);
+    nativeConfig.setLanguagemodelpath(config.languagemodelpath);
   if (config.usegrammar)
-    nativeConfig.setUsegrammarSync(config.usegrammar);
+    nativeConfig.setUsegrammar(config.usegrammar);
 
   this._nativeSpeechRecognizer = Java.newInstanceSync(javaClass, nativeConfig);
   this._selectivity = config.selectivity || Infinity;
@@ -40,11 +40,11 @@ SpeechRecognizer.prototype = Object.create(SpeechListener.prototype, {
       var handleResult = function (nativeResult) {
         if (nativeResult == null) return;
 
-        var iterator = result.getLatticeSync().allPathsSync().iteratorSync();
+        var iterator = result.getLattice().allPaths().iterator();
         var selection = this.selectivity;
 
-        while (iterator.hasNextSync() && selection--) {
-          var path = iterator.nextSync();
+        while (iterator.hasNext() && selection--) {
+          var path = iterator.next();
           this.trigger(path);
         }
 
