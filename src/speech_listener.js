@@ -15,7 +15,7 @@ SpeechListener.prototype = Object.create(Object.prototype, {
 
       if (!handlers) {
         handlers = new Map();
-        this._events.set(handlers);
+        this._events.set(pattern, handlers);
       }
 
       handlers.set(handler, handler);
@@ -38,7 +38,7 @@ SpeechListener.prototype = Object.create(Object.prototype, {
 
       if (!handlers) {
         handlers = new Map();
-        this._events.set(handlers);
+        this._events.set(pattern, handlers);
       }
 
       handlers.set(handler, wrappedHandler);
@@ -64,20 +64,25 @@ SpeechListener.prototype = Object.create(Object.prototype, {
     enumerable: true,
     configurable: true,
     writable: true,
-    value: function (phrase, args) {
-      this._events.enteries().forEach(function (entery) {
-        var pattern = entery[0];
-        var handlers = entery[1];
+    value: function (phrase) {
+      var args = [].slice.call(arguments, 1);
+      var exists = false;
+
+      this._events.forEach(function (handlers, pattern) {
+        pattern = new RegExp(pattern, "i");
         var matches = phrase.match(pattern);
 
         if (!matches) return;
 
+        exists = true;
         args = args.concat(matches);
 
-        handlers.values().forEach(function (handler) {
+        handlers.forEach(function (handler) {
           handler.apply(null, args);
         });
       });
+
+      return exists;
     }
   },
 });

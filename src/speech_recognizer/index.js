@@ -5,18 +5,18 @@ function SpeechRecognizer(config, javaClass) {
   SpeechListener.apply(this, arguments);
 
   var nativeConfig = Java.newInstanceSync("edu.cmu.sphinx.api.Configuration");
-  if (config.acousticmodelpath)
-    nativeConfig.setAcousticmodelpath(config.acousticmodelpath);
-  if (config.dictionarypath)
-    nativeConfig.setDictionarypath(config.dictionarypath);
-  if (config.grammarname)
-    nativeConfig.setGrammarname(config.grammarname);
-  if (config.grammarpath)
-    nativeConfig.setGrammarpath(config.grammarpath);
-  if (config.languagemodelpath)
-    nativeConfig.setLanguagemodelpath(config.languagemodelpath);
-  if (config.usegrammar)
-    nativeConfig.setUsegrammar(config.usegrammar);
+  if (config.acousticModelPath)
+    nativeConfig.setAcousticModelPath(config.acousticModelPath);
+  if (config.dictionaryPath)
+    nativeConfig.setDictionaryPath(config.dictionaryPath);
+  if (config.grammarName)
+    nativeConfig.setGrammarName(config.grammarName);
+  if (config.grammarPath)
+    nativeConfig.setGrammarpath(config.grammarPath);
+  if (config.languageModelPath)
+    nativeConfig.setLanguageModelPath(config.languageModelPath);
+  if (config.useGrammar)
+    nativeConfig.setUseGrammar(config.useGrammar);
 
   this._nativeSpeechRecognizer = Java.newInstanceSync(javaClass, nativeConfig);
   this._selectivity = config.selectivity || Infinity;
@@ -34,25 +34,30 @@ SpeechRecognizer.prototype = Object.create(SpeechListener.prototype, {
     configurable: true,
     writable: true,
     value: function () {
+      var self = this;
+
       var promise = this._nativeSpeechRecognizer.startRecognitionPromise
-        .apply(_nativeSpeechRecognizer, arguments);
+        .apply(this._nativeSpeechRecognizer, arguments);
 
       var handleResult = function (nativeResult) {
-        if (nativeResult == null) return;
+        if (nativeResult == null) {
+          self.stopRecognition();
+          return;
+        }
 
-        var iterator = result.getLattice().allPaths().iterator();
-        var selection = this.selectivity;
+        var iterator = nativeResult.getLattice().allPaths().iterator();
+        var selection = self._selectivity;
 
         while (iterator.hasNext() && selection--) {
           var path = iterator.next();
-          this.trigger(path);
+          if (self.trigger(path)) break;
         }
 
-        this._nativeSpeechRecognizer().getResultPromise().then(handleResult);
+        self._nativeSpeechRecognizer.getResultPromise().then(handleResult);
       };
 
       promise.then(function () {
-        this._nativeSpeechRecognizer().getResultPromise().then(handleResult);
+        self._nativeSpeechRecognizer.getResultPromise().then(handleResult);
       });
 
       return promise;
@@ -64,10 +69,13 @@ SpeechRecognizer.prototype = Object.create(SpeechListener.prototype, {
     configurable: true,
     writable: true,
     value: function (event, handler) {
-      return this._nativeSpeechRecognizer.startRecognitionPromise
+      return this._nativeSpeechRecognizer.stopRecognitionPromise
         .apply(this._nativeSpeechRecognizer, arguments);
     }
   }
 });
 
 module.exports = SpeechRecognizer;
+
+require("./live");
+require("./stream");

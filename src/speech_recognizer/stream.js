@@ -1,9 +1,10 @@
-var BufferConcat = require("buffer-concat");
+var Promise = require("bluebird");
+var Fs = require("fs");
 var Java = require("java");
-var Buffer = require("safe-buffer").Buffer;
+var Tmp = require("tmp");
 var SpeechRecognizer = require(".");
 
-SpeechRecognizer.Stream = function StreamSpeechRecognizer() {
+SpeechRecognizer.Stream = function StreamSpeechRecognizer(config) {
   SpeechRecognizer.call(this, config, "edu.cmu.sphinx.api.StreamSpeechRecognizer");
 }
 
@@ -13,30 +14,30 @@ SpeechRecognizer.Stream.prototype = Object.create(SpeechRecognizer.prototype, {
     configurable: true,
     writable: true,
     value: function (readStream) {
-      var nativeReadStream = Java.newInstanceSync("java.io.InputStream");
-      var buffer = Buffer.alloc(0);
-      var finished;
+      var self = this;
 
-      var nativeReadStream = Java.newProxy("java.io.InputStream", {
-        read: function () {
-          if (finished) return -1;
-
-          var byte = buffer[0];
-          buffer = buffer.slice(1);
-
-          return byte || 0;
-        }
+      var createTempFile = Promise.promisify(Tmp.file, {
+        multiArgs: true
       });
 
-      readStream.on("data", function (chunk) {
-        buffer = BufferConcat([buffer, chunk]);
-      });
+      var removeTempFile;
 
-      readStream.on("end", function () {
-        finished = true;
+      createTempFile().then(function (results) {
+        var tempFilePath = results[0];
+        removeTempFile = Promise.promisify(results[2]);
+        var writeStream = Fs.createWriteStream(tempFilePath);
+        readStream.pipe(writeStream);
+        return Java.newInstancePromise("java.io.File", tempFilePath);
+      })
+      .then(function (nativeFile) {
+        return Java.newInstancePromise("java.io.FileInputStream", nativeFile);
+      })
+      .then(function (nativeReadStream) {
+        return SpeechRecognizer.prototype.startRecognition.call(self, nativeReadStream);
+      })
+      .then(function () {
+        return removeTempFile();
       });
-
-      SpeechRecognizer.prototype.startRecognition.call(this, nativeReadStream);
     }
   }
 });
